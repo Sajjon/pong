@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48FACE030000000000000003 /* MobiusCore in Frameworks */ = {isa = PBXBuildFile; productRef = 48FACE020000000000000002 /* MobiusCore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		4856F0D82F99E89400A89D8E /* Pong.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pong.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48FACE030000000000000003 /* MobiusCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = Pong;
 			packageProductDependencies = (
+				48FACE020000000000000002 /* MobiusCore */,
 			);
 			productName = Pong;
 			productReference = 4856F0D82F99E89400A89D8E /* Pong.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = 4856F0CF2F99E89400A89D8E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				48FACE010000000000000001 /* XCRemoteSwiftPackageReference "Mobius" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4856F0D92F99E89400A89D8E /* Products */;
 			projectDirPath = "";
@@ -145,6 +154,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2TPCZYA75A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pong/App/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -162,7 +172,6 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -174,6 +183,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2TPCZYA75A;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pong/App/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -191,7 +201,6 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -256,6 +265,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -311,6 +321,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -337,6 +348,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48FACE010000000000000001 /* XCRemoteSwiftPackageReference "Mobius" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/spotify/Mobius.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48FACE020000000000000002 /* MobiusCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48FACE010000000000000001 /* XCRemoteSwiftPackageReference "Mobius" */;
+			productName = MobiusCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4856F0D02F99E89400A89D8E /* Project object */;
 }
