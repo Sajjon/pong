@@ -10,16 +10,17 @@ import QuartzCore
 import UIKit
 
 final class PongViewController: UIViewController {
-	private var gameView: PongGameView!
+	private lazy var gameView = PongGameView()
 	private var loopController: MobiusController<PongModel, PongEvent, PongEffect>?
 	private var displayLink: CADisplayLink?
 	private var lastTimestamp: CFTimeInterval = 0
 	private var heldKeys: Set<UIKeyboardHIDUsage> = []
+}
 
+extension PongViewController {
 	override var canBecomeFirstResponder: Bool { true }
 
 	override func loadView() {
-		gameView = PongGameView()
 		view = gameView
 	}
 
@@ -102,7 +103,11 @@ final class PongViewController: UIViewController {
 		gameView.dispatch(.playerInput(.stop))
 		super.pressesCancelled(presses, with: event)
 	}
+}
 
+
+// MARK: Private
+extension PongViewController {
 	private func buildLoop() {
 		let builder = Mobius
 			.loop(update: PongLogic.update(model:event:), effectHandler: PongEffectHandler())
