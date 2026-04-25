@@ -8,10 +8,12 @@
 import MobiusCore
 import UIKit
 
+// MARK: PongGameView
 final class PongGameView: UIView, Connectable {
 	typealias Input = PongModel
 	typealias Output = PongEvent
 
+	// MARK: Immutable Properties
 	private let leftPaddle = UIView()
 	private let rightPaddle = UIView()
 	private let ball = UIView()
@@ -20,8 +22,10 @@ final class PongGameView: UIView, Connectable {
 	private let rightScoreLabel = UILabel()
 	private let overlayLabel = UILabel()
 
+	// MARK: Mutable Properties
 	private var currentModel: PongModel?
 	private var eventConsumer: Consumer<PongEvent>?
+	private var heldKeys: Set<UIKeyboardHIDUsage> = []
 
 	override init(frame: CGRect) {
 		super.init(frame: frame)
@@ -31,6 +35,19 @@ final class PongGameView: UIView, Connectable {
 
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
+	}
+}
+
+// MARK: Override
+extension PongGameView {
+
+	override var canBecomeFirstResponder: Bool { true }
+
+	override func didMoveToWindow() {
+		super.didMoveToWindow()
+		if window != nil {
+			becomeFirstResponder()
+		}
 	}
 
 	override func layoutSubviews() {
@@ -42,6 +59,72 @@ final class PongGameView: UIView, Connectable {
 			render(model)
 		}
 	}
+}
+
+// MARK: Keyboard
+extension PongGameView {
+
+	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		var handled = false
+		for press in presses {
+			guard let key = press.key else { continue }
+			switch key.keyCode {
+			case .keyboardUpArrow, .keyboardW:
+				heldKeys.insert(key.keyCode)
+				dispatch(.playerInput(.up))
+				handled = true
+			case .keyboardDownArrow, .keyboardS:
+				heldKeys.insert(key.keyCode)
+				dispatch(.playerInput(.down))
+				handled = true
+			case .keyboardSpacebar, .keyboardReturnOrEnter:
+				dispatch(.togglePause)
+				handled = true
+			case .keyboardR:
+				dispatch(.reset)
+				handled = true
+			default:
+				break
+			}
+		}
+		if !handled {
+			super.pressesBegan(presses, with: event)
+		}
+	}
+
+	override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		var handled = false
+		for press in presses {
+			guard let key = press.key else { continue }
+			switch key.keyCode {
+			case .keyboardUpArrow, .keyboardW, .keyboardDownArrow, .keyboardS:
+				heldKeys.remove(key.keyCode)
+				if heldKeys.contains(.keyboardUpArrow) || heldKeys.contains(.keyboardW) {
+					dispatch(.playerInput(.up))
+				} else if heldKeys.contains(.keyboardDownArrow) || heldKeys.contains(.keyboardS) {
+					dispatch(.playerInput(.down))
+				} else {
+					dispatch(.playerInput(.stop))
+				}
+				handled = true
+			default:
+				break
+			}
+		}
+		if !handled {
+			super.pressesEnded(presses, with: event)
+		}
+	}
+
+	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		heldKeys.removeAll()
+		dispatch(.playerInput(.stop))
+		super.pressesCancelled(presses, with: event)
+	}
+}
+
+// MARK: Mobius
+extension PongGameView {
 
 	func dispatch(_ event: PongEvent) {
 		eventConsumer?(event)
@@ -63,6 +146,10 @@ final class PongGameView: UIView, Connectable {
 		)
 	}
 
+}
+
+// MARK: Private
+extension PongGameView {
 	private func setupViews() {
 		backgroundColor = .black
 
