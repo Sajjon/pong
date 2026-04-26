@@ -1,0 +1,69 @@
+disabled_rules:
+  - trailing_newline
+  - trailing_whitespace
+  - todo
+
+opt_in_rules:
+  # Require every function/method with 2+ parameters to place each on its own line.
+  - multiline_parameters
+
+multiline_parameters:
+  allows_single_line: false
+
+# SwiftFormat's --commas always adds trailing commas in multi-line collections;
+# require them here so both tools agree.
+trailing_comma:
+  mandatory_comma: true
+
+included:
+  - Pong
+  - PongTests
+
+excluded:
+  - Carthage
+  - Pods
+
+line_length: 200
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 80
+    error: 120
+
+type_body_length:
+  warning: 400
+  error: 600
+
+# Mobius update functions are pure switch statements that are intentionally
+# long; pure functions and layout helpers likewise.
+function_body_length:
+  warning: 80
+  error: 120
+  ignores_comments: true
+
+function_parameter_count:
+  warning: 4
+  error: 5
+
+# Complexity / cognitive-load metric.
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+
+# Allow common iOS/UIKit abbreviations and single-letter loop indices that
+# are idiomatic Swift.
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  excluded:
+    - i
+    - id
+    - x
+    - y
+    - dx
+    - dy
+    - sx
+    - sy
+    - m

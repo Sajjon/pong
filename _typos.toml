@@ -1,0 +1,12 @@
+[default]
+extend-ignore-re = [
+    # Allow common iOS shorthand
+    "(?i)iv\\b",
+    "(?i)cv\\b",
+]
+
+[files]
+extend-exclude = [
+    "*.xcodeproj/**",
+    ".build/**",
+]

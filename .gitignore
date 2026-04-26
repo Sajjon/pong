@@ -11,6 +11,9 @@ build/
 DerivedData/
 *.xcworkspace/xcuserdata/
 
+# Just/CI artifacts
+.build/
+
 # Swift Package Manager
 .swiftpm/
 .build/

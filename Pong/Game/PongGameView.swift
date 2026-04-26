@@ -4,32 +4,64 @@
 //
 //  Created by Alexander Cyon on 2026-04-23.
 //
+//  ── What this file is ────────────────────────────────────────────────────
+//  The thin façade between Mobius and the rest of the UI. Three jobs:
+//
+//    1. Hold a `PongScene` subview and forward `render(model)` to it.
+//    2. Translate raw UIKit user input (touch + keyboard) into PongEvents.
+//    3. Conform to Mobius's `Connectable` so the loop can attach to it.
+//
+//  This view does NOT make any game decisions. Tap → `.tap`, drag → `.dragTo`.
+//  All "what should happen?" reasoning lives in `PongLogic`. That's why
+//  there's no model snapshot here — the view doesn't read the model to
+//  decide anything.
+//
+//  ── Mobius concept introduced here: `Connectable` ────────────────────────
+//
+//  `Connectable<Input, Output>` is Mobius's universal "attach me to the
+//  loop" protocol. You implement `connect(_:)`, which Mobius calls once.
+//  You're given a `Consumer<Output>` (a function you call to push events
+//  back into the loop) and you return a `Connection<Input>` that
+//  describes how to receive inputs (models, in our case) and how to
+//  clean up.
+//
+//  For the view: Input = `PongModel` (the loop tells us "render this"),
+//  Output = `PongEvent` (we tell the loop "user did this").
+//
 
-import MobiusCore
+import MobiusCore  // Connectable, Connection, Consumer
 import UIKit
 
-// MARK: PongGameView
+// MARK: - PongGameView
+
 final class PongGameView: UIView, Connectable {
-	typealias Input = PongModel
+	/// Mobius hands us models via this type.
+	typealias Input  = PongModel
+	/// Mobius accepts events from us of this type.
 	typealias Output = PongEvent
 
-	// MARK: Immutable Properties
-	private let leftPaddle = UIView()
-	private let rightPaddle = UIView()
-	private let ball = UIView()
-	private let centerLine = CAShapeLayer()
-	private let leftScoreLabel = UILabel()
-	private let rightScoreLabel = UILabel()
-	private let overlayLabel = UILabel()
+	// MARK: - Immutable Properties
 
-	// MARK: Mutable Properties
-	private var currentModel: PongModel?
+	/// The thing that actually draws pixels.
+	private let scene = PongScene()
+
+	/// Keyboard input handler. `lazy` because the closure it takes
+	/// captures `self` (`[weak self]`) and we can't use `self` in a
+	/// stored-property initializer until init has finished.
+	private lazy var keyboard = KeyboardInputMapper { [weak self] event in
+		self?.eventConsumer?(event)
+	}
+
+	// MARK: - Connection Port
+
+	/// Set by Mobius in `connect(_:)`, cleared in the dispose closure.
+	/// Must be `var` because the connection lifecycle goes
+	/// nil → consumer → nil. See discussion in commit history if curious.
 	private var eventConsumer: Consumer<PongEvent>?
-	private var heldKeys: Set<UIKeyboardHIDUsage> = []
 
 	override init(frame: CGRect) {
 		super.init(frame: frame)
-		setupViews()
+		addSubview(scene)
 		setupGestures()
 	}
 
@@ -38,11 +70,16 @@ final class PongGameView: UIView, Connectable {
 	}
 }
 
-// MARK: Override
+// MARK: - Override
 extension PongGameView {
-
+	/// Required to receive `pressesBegan` etc. on a UIView. Default is
+	/// false for views (only view controllers default true).
 	override var canBecomeFirstResponder: Bool { true }
 
+	/// UIKit calls this when the view is added to (or removed from) a
+	/// window. We use the "added to window" case to grab keyboard
+	/// focus automatically. Without this, `pressesBegan` would never
+	/// fire on us.
 	override func didMoveToWindow() {
 		super.didMoveToWindow()
 		if window != nil {
@@ -50,140 +87,84 @@ extension PongGameView {
 		}
 	}
 
+	/// UIKit calls this whenever this view's bounds change (rotation,
+	/// initial layout, window resize). Two jobs:
+	///   1. Resize the scene to fill us.
+	///   2. Tell the loop the new viewport size.
 	override func layoutSubviews() {
 		super.layoutSubviews()
-		centerLine.frame = bounds
-		centerLine.path = makeCenterLinePath()
+		scene.frame = bounds
+		// Optional-chaining: do nothing if the loop isn't connected
+		// yet (e.g. very first layout, before `connect(_:)` has been
+		// called).
 		eventConsumer?(.viewportChanged(bounds.size))
-		if let model = currentModel {
-			render(model)
-		}
 	}
-}
 
-// MARK: Keyboard
-extension PongGameView {
+	// MARK: Keyboard
+	//
+	// UIKit's "responder chain" delivers key events starting at the
+	// first responder and bubbling up. We override the press methods
+	// here, hand them to the mapper, and forward to `super` only if
+	// the mapper didn't claim the event — that way text-shortcut keys
+	// we don't care about can still be handled elsewhere.
 
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		var handled = false
-		for press in presses {
-			guard let key = press.key else { continue }
-			switch key.keyCode {
-			case .keyboardUpArrow, .keyboardW:
-				heldKeys.insert(key.keyCode)
-				dispatch(.playerInput(.up))
-				handled = true
-			case .keyboardDownArrow, .keyboardS:
-				heldKeys.insert(key.keyCode)
-				dispatch(.playerInput(.down))
-				handled = true
-			case .keyboardSpacebar, .keyboardReturnOrEnter:
-				dispatch(.togglePause)
-				handled = true
-			case .keyboardR:
-				dispatch(.reset)
-				handled = true
-			default:
-				break
-			}
-		}
-		if !handled {
+		if !keyboard.pressesBegan(presses) {
 			super.pressesBegan(presses, with: event)
 		}
 	}
 
 	override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		var handled = false
-		for press in presses {
-			guard let key = press.key else { continue }
-			switch key.keyCode {
-			case .keyboardUpArrow, .keyboardW, .keyboardDownArrow, .keyboardS:
-				heldKeys.remove(key.keyCode)
-				if heldKeys.contains(.keyboardUpArrow) || heldKeys.contains(.keyboardW) {
-					dispatch(.playerInput(.up))
-				} else if heldKeys.contains(.keyboardDownArrow) || heldKeys.contains(.keyboardS) {
-					dispatch(.playerInput(.down))
-				} else {
-					dispatch(.playerInput(.stop))
-				}
-				handled = true
-			default:
-				break
-			}
-		}
-		if !handled {
+		if !keyboard.pressesEnded(presses) {
 			super.pressesEnded(presses, with: event)
 		}
 	}
 
 	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		heldKeys.removeAll()
-		dispatch(.playerInput(.stop))
+		keyboard.pressesCancelled()
 		super.pressesCancelled(presses, with: event)
 	}
 }
 
-// MARK: Mobius
+// MARK: - Mobius
 extension PongGameView {
-
-	func dispatch(_ event: PongEvent) {
-		eventConsumer?(event)
-	}
-
+	/// Mobius calls this once during loop wiring.
+	///
+	/// - Parameter consumer: Closure to push events into the loop.
+	/// - Returns: A `Connection<PongModel>` whose `acceptClosure` fires
+	///   every time Mobius produces a new model, and whose
+	///   `disposeClosure` fires when the loop tears down.
 	func connect(_ consumer: @escaping Consumer<PongEvent>) -> Connection<PongModel> {
 		eventConsumer = consumer
+
+		// If we already have a non-zero size by the time Mobius
+		// connects (likely — the view was laid out before viewDidAppear
+		// triggered loop start), tell the loop right away. Otherwise
+		// the first viewportChanged comes from `layoutSubviews`.
 		if bounds.size.width > 0, bounds.size.height > 0 {
 			consumer(.viewportChanged(bounds.size))
 		}
+
 		return Connection(
 			acceptClosure: { [weak self] model in
-				self?.currentModel = model
-				self?.render(model)
+				// Mobius gives us a fresh model — paint it.
+				self?.scene.render(model)
 			},
 			disposeClosure: { [weak self] in
+				// Loop is going away; release the consumer so we
+				// don't try to push events into a torn-down loop.
 				self?.eventConsumer = nil
 			}
 		)
 	}
-
 }
 
-// MARK: Private
+// MARK: - Private
 extension PongGameView {
-	private func setupViews() {
-		backgroundColor = .black
 
-		centerLine.strokeColor = UIColor.white.withAlphaComponent(0.35).cgColor
-		centerLine.lineWidth = 2
-		centerLine.lineDashPattern = [8, 8]
-		centerLine.fillColor = UIColor.clear.cgColor
-		layer.addSublayer(centerLine)
-
-		for paddle in [leftPaddle, rightPaddle] {
-			paddle.backgroundColor = .white
-			paddle.layer.cornerRadius = 3
-			addSubview(paddle)
-		}
-
-		ball.backgroundColor = .white
-		addSubview(ball)
-
-		for (label, alignment) in [(leftScoreLabel, NSTextAlignment.right), (rightScoreLabel, .left)] {
-			label.font = .monospacedDigitSystemFont(ofSize: 72, weight: .bold)
-			label.textColor = UIColor.white.withAlphaComponent(0.55)
-			label.textAlignment = alignment
-			label.text = "0"
-			addSubview(label)
-		}
-
-		overlayLabel.font = .systemFont(ofSize: 28, weight: .semibold)
-		overlayLabel.textColor = .white
-		overlayLabel.textAlignment = .center
-		overlayLabel.numberOfLines = 0
-		overlayLabel.isHidden = true
-		addSubview(overlayLabel)
-	}
-
+	/// Wire up touch gestures. UIGestureRecognizer + target/action is
+	/// the classic UIKit pattern: create the recognizer, point it at a
+	/// method on `self`, attach it to the view.
 	private func setupGestures() {
 		let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
 		addGestureRecognizer(tap)
@@ -192,81 +173,26 @@ extension PongGameView {
 		addGestureRecognizer(pan)
 	}
 
-	@objc private func handleTap() {
-		if let winner = currentModel?.winner {
-			_ = winner
-			eventConsumer?(.reset)
-		} else {
-			eventConsumer?(.togglePause)
-		}
+	/// `@objc` exposes this method to the Objective-C runtime, which
+	/// is how UIGestureRecognizer's target/action mechanism finds it.
+	/// (Selectors are an Objective-C concept.)
+	@objc func handleTap() {
+		// Just report the raw event. PongLogic.onTap decides what to do.
+		eventConsumer?(.tap)
 	}
 
-	@objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-		guard let model = currentModel else { return }
+	/// Handle pan gesture state transitions. UIPanGestureRecognizer
+	/// transitions through .began → .changed → .ended (or .cancelled
+	/// / .failed); we report drag-to during the move and drag-end
+	/// when the touch lifts.
+	@objc func handlePan(_ gesture: UIPanGestureRecognizer) {
 		switch gesture.state {
 		case .began, .changed:
-			let location = gesture.location(in: self)
-			let target = location.y
-			let current = model.leftPaddle.center.y
-			let threshold: CGFloat = 6
-			if target < current - threshold {
-				eventConsumer?(.playerInput(.up))
-			} else if target > current + threshold {
-				eventConsumer?(.playerInput(.down))
-			} else {
-				eventConsumer?(.playerInput(.stop))
-			}
+			eventConsumer?(.dragTo(y: gesture.location(in: self).y))
 		case .ended, .cancelled, .failed:
-			eventConsumer?(.playerInput(.stop))
+			eventConsumer?(.dragEnded)
 		default:
-			break
+			break  // .possible / .recognized — nothing to do
 		}
-	}
-
-	private func render(_ model: PongModel) {
-		guard model.court.width > 0, model.court.height > 0 else { return }
-
-		leftPaddle.bounds = CGRect(origin: .zero, size: model.leftPaddle.size)
-		leftPaddle.center = model.leftPaddle.center
-
-		rightPaddle.bounds = CGRect(origin: .zero, size: model.rightPaddle.size)
-		rightPaddle.center = model.rightPaddle.center
-
-		let diameter = model.ball.radius * 2
-		ball.bounds = CGRect(x: 0, y: 0, width: diameter, height: diameter)
-		ball.layer.cornerRadius = model.ball.radius
-		ball.center = model.ball.position
-
-		leftScoreLabel.text = "\(model.leftScore)"
-		rightScoreLabel.text = "\(model.rightScore)"
-		let labelWidth: CGFloat = bounds.width / 2 - 32
-		leftScoreLabel.frame = CGRect(x: 0, y: 32, width: labelWidth, height: 80)
-		rightScoreLabel.frame = CGRect(x: bounds.width / 2 + 32, y: 32, width: labelWidth, height: 80)
-
-		if let winner = model.winner {
-			overlayLabel.isHidden = false
-			overlayLabel.text = "\(winner == .left ? "You" : "AI") wins!\nTap to play again"
-		} else if !model.hasStarted {
-			overlayLabel.isHidden = false
-			overlayLabel.text = "Tap or press Space to start\nDrag or ↑/↓ (W/S) to move\nR to reset"
-		} else if model.isPaused {
-			overlayLabel.isHidden = false
-			overlayLabel.text = "Paused — tap or press Space"
-		} else {
-			overlayLabel.isHidden = true
-		}
-		overlayLabel.frame = CGRect(
-			x: 24,
-			y: bounds.midY - 70,
-			width: bounds.width - 48,
-			height: 140
-		)
-	}
-
-	private func makeCenterLinePath() -> CGPath {
-		let path = UIBezierPath()
-		path.move(to: CGPoint(x: bounds.midX, y: 0))
-		path.addLine(to: CGPoint(x: bounds.midX, y: bounds.height))
-		return path.cgPath
 	}
 }
