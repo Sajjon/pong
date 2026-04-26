@@ -12,7 +12,7 @@
 //
 //    update(model:event:) — given the *current* model and an *incoming*
 //                   event, return the *next* model and any side effects
-//                   to perform. Pure: no UIKit, no I/O, no random clocks.
+//                   to perform. Pure: no UIKit, no I/O, no real time.
 //                   Same inputs → same outputs, every time.
 //
 //  Mobius's golden rule: this function is the ONLY place the model

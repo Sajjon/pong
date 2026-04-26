@@ -5,9 +5,9 @@
 //  Created by Alexander Cyon on 2026-04-23.
 //
 //  ── What this file is ────────────────────────────────────────────────────
-//  The clock. An "event source" in Mobius vocabulary: an object that
-//  produces events from outside the loop, on its own schedule, without
-//  being asked.
+//  The per-frame tick source. An "event source" in Mobius vocabulary:
+//  an object that produces events from outside the loop, on its own
+//  schedule, without being asked.
 //
 //  This one wraps `CADisplayLink` (UIKit's vsync-aligned timer that fires
 //  once per display refresh — typically 60 or 120 Hz). On each fire it

@@ -65,7 +65,7 @@ Pong/
     ├── PongTypes.swift             Model, Event, Effect — the vocabulary
     ├── PongLogic.swift             Pure update function (the brain)
     ├── PongEffectHandler.swift     Handles effects (haptics)
-    ├── PongTickEventSource.swift   The clock (CADisplayLink)
+    ├── PongTickEventSource.swift   Per-frame ticks (CADisplayLink)
     ├── PongScene.swift             Pure UIView — render(_ model:)
     ├── KeyboardInputMapper.swift   UIPress → PongEvent
     ├── PongGameView.swift          Wires UIKit to Mobius

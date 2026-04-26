@@ -54,8 +54,8 @@ final class PongViewController: UIViewController {
 				update: PongLogic.update(model:event:),
 				effectHandler: PongEffectHandler()
 			)
-			// Attach the clock as an event source. The loop will
-			// auto-start it on `controller.start()` and stop it on
+			// Attach the per-frame tick source. Mobius will subscribe
+			// it on `controller.start()` and dispose it on
 			// `controller.stop()`.
 			.withEventSource(PongTickEventSource())
 			// Materialize the builder into a runtime controller.

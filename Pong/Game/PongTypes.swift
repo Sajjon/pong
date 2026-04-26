@@ -8,8 +8,9 @@
 //  The "vocabulary" of the game. Three things, all pure data, no behavior:
 //
 //    • PongModel  — the entire state of the game at one instant in time.
-//    • PongEvent  — every kind of input the game can receive (user, clock,
-//                   viewport changes…). Sent INTO the Mobius loop.
+//    • PongEvent  — every kind of input the game can receive (user input,
+//                   per-frame ticks, viewport changes…). Sent INTO the
+//                   Mobius loop.
 //    • PongEffect — every kind of side effect the game asks for (haptics).
 //                   Sent OUT of the Mobius loop, handled outside the pure
 //                   logic.
@@ -174,8 +175,8 @@ struct PongModel: Equatable {
 /// "given this model + this event, expect this next model"), and lets
 /// Mobius dedupe identical events.
 enum PongEvent: Equatable {
-	/// The frame clock fired. `dt` is seconds since the last tick (capped
-	/// to 1/30 s to avoid huge jumps after backgrounding).
+	/// `PongTickEventSource` fired. `dt` is seconds since the last tick
+	/// (capped to 1/30 s to avoid huge jumps after backgrounding).
 	case tick(dt: CGFloat)
 	/// The user tapped the screen. Logic decides whether to togglePause or
 	/// reset based on whether the game is over.

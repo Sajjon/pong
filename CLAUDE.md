@@ -15,8 +15,9 @@ the view…).
 
 A UIKit Pong game built on **Spotify's Mobius.swift** as a pure-MVI teaching
 artifact. The pure logic lives in `PongLogic`; the view is a thin
-`Connectable` over a render-only `PongScene`; the clock is an `EventSource`;
-haptics are `Effect`s. Plain Swift 5 — no actor-isolation noise.
+`Connectable` over a render-only `PongScene`; per-frame ticks are produced
+by an `EventSource` (`PongTickEventSource`); haptics are `Effect`s. Plain
+Swift 5 — no actor-isolation noise.
 
 ## Commands
 
