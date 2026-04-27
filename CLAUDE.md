@@ -19,6 +19,40 @@ artifact. The pure logic lives in `PongLogic`; the view is a thin
 by an `EventSource` (`PongTickEventSource`); haptics are `Effect`s. Plain
 Swift 5 — no actor-isolation noise.
 
+## Tooling: LSP first, text tools last
+
+This project is Swift. **Use the Swift LSP plugin** at
+`~/.claude/plugins/marketplaces/claude-plugins-official/plugins/swift-lsp/`
+before reaching for `Bash`, `grep`, `sed`, `awk`, `find`, or `xcodebuild`.
+The LSP tools are deferred — at the start of every session, run:
+
+```
+ToolSearch(query: "select:LSP")
+```
+
+The `swift-lsp-first` skill auto-surfaces on Swift work and has the full
+substitution table. The short version:
+
+| When you want to… | Use LSP | Not |
+|---|---|---|
+| See a symbol's signature | hover | `Read` of the source |
+| Find call sites | references | `grep -rn` |
+| Find a symbol by name | workspace symbol | `find` + `grep` |
+| Verify a change compiles | diagnostics | `xcodebuild build` |
+| Rename a symbol | rename | `sed -i` / `Edit replace_all` |
+| Bulk-strip a keyword | rename / code action | `sed` |
+
+Reserve `xcodebuild` for what only it does: full-target compilation,
+running the test suite (`just test`), and coverage (`just cov`). Never use
+it as a syntax checker — that's the LSP's job, and it answers in
+milliseconds instead of 30+ seconds.
+
+Reserve `sed` / `awk` / `grep` for genuinely text-level files: markdown,
+plists, YAML, shell scripts, log inspection. They have no place
+modifying `.swift` source — they can't tell code from comments or string
+literals, and `sed -i` corrupts files silently when matches land in
+unintended places. The LSP works at the AST level and won't.
+
 ## Commands
 
 | Goal | Command |
