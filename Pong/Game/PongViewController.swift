@@ -81,6 +81,7 @@ extension PongViewController {
 	/// Default behavior is to look for a nib/storyboard; we override
 	/// to install our programmatic view directly.
 	override func loadView() {
+		super.loadView()
 		view = gameView
 	}
 
